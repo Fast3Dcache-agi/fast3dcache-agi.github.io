@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="description"
+        content="Fast3Dcache: Training-free 3D Geometry Synthesis Acceleration">
+  <meta name="keywords" content="3D Generation, Diffusion Models, Acceleration, Caching">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Fast3Dcache: Training-free 3D Geometry Synthesis Acceleration</title>
+
+  <!-- Google Model Viewer -->
+  <script type="module" src="https://unpkg.com/@google/model-viewer/dist/model-viewer.min.js"></script>
+
+  <link href="https://fonts.googleapis.com/css?family=Google+Sans|Noto+Sans|Castoro"
+        rel="stylesheet">
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/jpswalsh/academicons@1/css/academicons.min.css">
+
+  <style>
+    body {
+      font-family: 'Noto Sans', sans-serif;
+      background-color: #ffffff;
+    }
+    
+    .title.is-1 {
+        font-family: 'Google Sans', sans-serif;
+        font-weight: 900;
+        /* Trellis-like gradient text */
+        background: -webkit-linear-gradient(45deg, #FF6B6B, #4ECDC4, #556270);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent; 
+        padding-bottom: 10px;
+    }
+
+    .subtitle.is-3 {
+        color: #ff8c00; /* Orange accent like Trellis methodology header */
+        font-weight: 700;
+    }
+
+    .section-title {
+        font-family: 'Google Sans', sans-serif;
+        color: #5c5c5c; 
+        font-weight: 700;
+        font-size: 1.75rem;
+        margin-top: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .section-title.colorful {
+         /* Trellis Methodology Colors */
+        background: -webkit-linear-gradient(0deg, #4285f4, #9b51e0);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .subsection-title {
+        font-family: 'Google Sans', sans-serif;
+        color: #4a4a4a;
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin-top: 2rem;
+        margin-bottom: 1rem;
+        text-align: center;
+        border-bottom: 2px solid #eee;
+        padding-bottom: 10px;
+    }
+
+    .button.is-dark {
+        background-color: #363636;
+        border-radius: 2rem;
+    }
+    
+    .button.is-link.is-rounded {
+        background-color: #8250df; /* Purple accent */
+    }
+
+    .publication-title {
+      font-family: 'Google Sans', sans-serif;
+    }
+
+    .publication-authors {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 1.25rem;
+    }
+    
+    .author-block {
+        margin-right: 10px;
+    }
+
+    .publication-venue {
+        color: #555;
+        font-weight: bold;
+        margin-top: 20px;
+        font-size: 1.1rem;
+    }
+    
+    .affiliation-block {
+        font-size: 1.3rem;
+        color: #4a4a4a;
+        display: block; /* Make affiliations stack or block-like if needed, or inline-block */
+        margin-bottom: 2px;
+    }
+
+    .abstract-box {
+        background-color: #f5f5f5;
+        border-radius: 10px;
+        padding: 20px;
+    }
+
+    .teaser-image {
+        border-radius: 10px;
+        box-shadow: 0 4px 8px 0 rgba(0,0,0,0.2);
+    }
+    
+    .method-box {
+        background-color: #ffffff;
+        border: 1px solid #e1e1e1;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* Comparison Card Styles */
+    .result-card {
+        background: white;
+        border-radius: 12px;
+        border: 1px solid #eee;
+        padding: 15px;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        text-align: center;
+        position: relative;
+        transition: transform 0.2s;
+    }
+
+    .result-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+    }
+    
+    /* Standard Model Viewer (Comparisons) */
+    .result-card model-viewer {
+        width: 100%;
+        height: 300px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        --poster-color: transparent;
+    }
+
+    .input-image-inset {
+        position: absolute;
+        bottom: 20px;
+        left: 20px;
+        width: 60px;
+        height: 60px;
+        border-radius: 6px;
+        border: 2px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        object-fit: cover;
+        background-color: white;
+        z-index: 10;
+    }
+
+    .caption {
+        margin-top: 10px;
+        font-size: 0.9rem;
+        color: #666;
+        font-weight: 600;
+    }
+
+    /* --- Gallery Styles (Updated to Grid) --- */
+    .gallery-container {
+        width: 100%;
+        background: #fff;
+        padding: 20px 0;
+    }
+
+    .gallery-content {
+        /* 使用 Grid 布局，自动填充列 */
+        display: grid;
+        /* 每一列最小宽度 140px，最大占满剩余空间。这样屏幕宽时列多，窄时列少 */
+        grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+        gap: 20px;
+        width: 100%;
+        justify-items: center;
+    }
+
+    .gallery-item {
+        width: 100%;
+        aspect-ratio: 1 / 1; /* 保持正方形 */
+        background: #fafafa;
+        border-radius: 8px;
+        /* box-shadow: 0 2px 5px rgba(0,0,0,0.05); */
+        transition: transform 0.2s;
+    }
+    
+    .gallery-item:hover {
+        transform: scale(1.05);
+        z-index: 10;
+    }
+
+    .gallery-item model-viewer {
+        width: 100%;
+        height: 100%;
+        --poster-color: transparent;
+        background-color: transparent;
+    }
+    
+    /* Table Styles */
+    /* ------------------------------------------------ */
+    /* HERE IS WHERE THE FONT SIZE IS CHANGED (这里修改了字体大小) */
+    .table th {
+        vertical-align: middle;
+        font-size: 0.85rem; /* Reduced font size for headers */
+    }
+    .table td {
+        vertical-align: middle;
+        font-size: 0.85rem; /* Reduced font size for content */
+    }
+    /* ------------------------------------------------ */
+    
+    .best-score {
+        font-weight: bold;
+        /* background-color: #e6fffa; */
+    }
+    .second-best {
+        text-decoration: underline;
+    }
+    
+  </style>
+</head>
+<body>
+
+<section class="hero">
+  <div class="hero-body">
+    <div class="container is-max-desktop">
+      <div class="columns is-centered">
+        <div class="column has-text-centered">
+          <h1 class="title is-1 publication-title">Fast3Dcache: Training-free 3D Geometry Synthesis Acceleration</h1>
+          
+          <!-- Authors -->
+          <div class="is-size-5 publication-authors">
+            <span class="author-block">
+              <a href="#">Mengyu Yang</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Yanming Yang</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Chenyi Xu</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Chenxi Song</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Yufan Zuo</a>,
+            </span>
+            <br>
+            <span class="author-block">
+              <a href="#">Tong Zhao</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Ruibo Li</a>,
+            </span>
+            <span class="author-block">
+              <a href="#">Chi Zhang</a><sup>*</sup>
+            </span>
+          </div>
+
+          <!-- Affiliations -->
+          <div class="is-size-6 publication-authors" style="font-size: 1.5em; margin-top: 15px;">
+            <span class="affiliation-block">AGI Lab, Westlake University</span>
+          </div>
+
+          <!-- Corresponding Author Note -->
+          <div class="is-size-6 publication-authors" style="font-size: 0.9em; margin-top: 10px;">
+            <span class="author-block"><sup>*</sup>Corresponding author</span>
+          </div>
+
+          <div class="publication-venue">
+            <span>arXiv Preprint</span>
+          </div>
+
+          <!-- Buttons -->
+          <div class="column has-text-centered">
+            <div class="publication-links">
+              <!-- PDF Link. -->
+              <span class="link-block">
+                <a href="https://arxiv.org/pdf/2511.22533"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fas fa-file-pdf"></i>
+                  </span>
+                  <span>Paper</span>
+                </a>
+              </span>
+              <!-- arXiv Link. -->
+              <span class="link-block">
+                <a href="https://arxiv.org/abs/2511.22533"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="ai ai-arxiv"></i>
+                  </span>
+                  <span>arXiv</span>
+                </a>
+              </span>
+              <!-- Code Link. -->
+              <span class="link-block">
+                <a href="https://github.com/Westlake-AGI-Lab/Fast3Dcache"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fab fa-github"></i>
+                  </span>
+                  <span>Code</span>
+                  </a>
+              </span>
+              <!-- Demo Link. -->
+              <span class="link-block">
+                <a href="https://huggingface.co/spaces/Westlake-AGILab/Fast3Dcache"
+                   class="external-link button is-normal is-rounded is-dark">
+                  <span class="icon">
+                      <i class="fas fa-cube"></i>
+                  </span>
+                  <span>Demo</span>
+                </a>
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Gallery Section (Fixed: Now using Grid Layout) -->
+<section class="hero is-light is-small">
+    <div class="hero-body" style="padding-top: 20px; padding-bottom: 20px;">
+        <div class="container is-max-desktop">
+            <div class="gallery-container">
+                <div class="gallery-content">
+                    <!-- Placeholders for Gallery Items. 
+                         Set auto-rotate, remove camera-controls for pure display. 
+                         Adjust rotation-per-second for speed. -->
+                  
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_creature_dragon_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/gou.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_building_colorful_cottage_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_creature_elephant_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_creature_furry_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_creature_quadruped_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_creature_robot_crab_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_creature_robot_dinosour_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_creature_rock_monster_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_humanoid_block_robot_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_humanoid_dragonborn_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_humanoid_dwarf_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_humanoid_goblin_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_humanoid_mech_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_misc_crate_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_misc_fireplace_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_misc_television_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_vehicle_bulldozer_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_vehicle_cart_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3/typical_vehicle_excavator_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/9_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/6_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_lantern_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_magicbook_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_mailbox_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_monster_chest_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_phonograph_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_portal2_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/17_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_telephone_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_misc_workbench_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_vehicle_biplane_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_vehicle_helicopter_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_vehicle_locomotive_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/typical_vehicle_pirate_ship_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>
+                    <div class="gallery-item"><model-viewer src="./outputs_tau3_sup/weatherworn_misc_paper_machine3_demo_trellis.glb" auto-rotate rotation-per-second="30deg" shadow-intensity="1" disable-zoom disable-tap></model-viewer></div>    
+                  </div>  
+                </div>
+            </div>
+        </div>
+  
+            <!-- New Caption Below Gallery -->
+            <div class="content has-text-centered" style="margin-top: 15px;">
+                <p class="is-size-6">
+                  <b>TL;DR: </b><b>Fast3Dcache</b> is a training-free framework that accelerates 3D geometry synthesis by leveraging voxel stabilization patterns, achieving significant speedup with negligible quality loss.
+                </p>
+            </div>
+        </div> 
+    </div>
+</section>
+
+
+
+<!-- Abstract -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <div class="columns is-centered has-text-centered">
+      <div class="column is-four-fifths">
+        <h2 class="title is-3">Abstract</h2>
+        <div class="content has-text-justified abstract-box">
+          <p>
+            Diffusion models have achieved impressive generative quality across modalities like 2D images, videos, and 3D shapes, but their inference remains computationally expensive due to the iterative denoising process. While recent caching-based methods effectively reuse redundant computations to speed up 2D and video generation, directly applying these techniques to 3D diffusion models can severely disrupt geometric consistency.
+          </p>
+          <p>
+            In 3D synthesis, even minor numerical errors in cached latent features accumulate, causing structural artifacts and topological inconsistencies. To overcome this limitation, we propose <b>Fast3Dcache</b>, a training-free geometry-aware caching framework that accelerates 3D diffusion inference while preserving geometric fidelity. Our method introduces a <b>Predictive Caching Scheduler Constraint (PCSC)</b> to dynamically determine cache quotas according to voxel stabilization patterns and a <b>Spatiotemporal Stability Criterion (SSC)</b> to select stable features for reuse based on velocity magnitude and acceleration criterion.
+          </p>
+          <p>
+            Comprehensive experiments show that Fast3Dcache accelerates inference significantly, achieving up to a 27.12% speed-up and a 54.8% reduction in FLOPs, with minimal degradation in geometric quality as measured by Chamfer Distance (2.48%) and F-Score (1.95%).
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Methodology Section -->
+<section class="section">
+  <div class="container is-max-desktop">
+    <h2 class="title is-3 section-title colorful">Methodology</h2>
+    
+    <!-- Pipeline Overview -->
+    <div class="columns is-centered">
+      <div class="column is-full-width">
+        <div class="method-box">
+            <h3 class="title is-4">Pipeline Overview</h3>
+            <div class="content has-text-centered">
+              <img src="pipeline.png" 
+                   alt="Fast3Dcache Pipeline" 
+                   style="width: 100%; border-radius: 10px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+              <p class="is-size-6 has-text-grey" style="margin-top: 10px;">
+                <i>Figure 3: Overview of the Fast3Dcache three-stage acceleration strategy.</i>
+              </p>
+            </div>
+            <div class="content">
+               <p>
+                 Our approach segments the inference process into three strategic phases: 
+                 (1) <b>Full Sampling</b> to establish initial geometric stability, 
+                 (2) <b>Dynamic Caching</b> using PCSC and SSC to skip redundant computations, and 
+                 (3) <b>CFG-Free Refinement</b> with an aggressive fixed-ratio schedule.
+               </p>
+            </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="columns is-vcentered">
+      <div class="column is-full-width">
+        <div class="method-box">
+            <h3 class="title is-4">Key Observation: Voxel Stabilization</h3>
+            <div class="content">
+              <p>
+                We observe a distinct <b>three-phase stabilization pattern</b> in 3D generation. As denoising proceeds, an increasing number of voxel locations become static.
+                Our method leverages this observation to design a dynamic caching mechanism.
+              </p>
+              <img src="observation.png" alt="Observation" style="width: 500px;"> 
+            </div>
+        </div>
+
+        <div class="method-box">
+            <h3 class="title is-4">Predictive Caching Scheduler Constraint (PCSC)</h3>
+            <div class="content">
+              <p>
+                PCSC dynamically determines cache quotas at each timestep. It predicts the number of stable voxels and controls the caching ratios effectively, following the observed logarithmic decay pattern in the intermediate phase.
+              </p>
+            </div>
+        </div>
+
+        <div class="method-box">
+            <h3 class="title is-4">Spatiotemporal Stability Criterion (SSC)</h3>
+            <div class="content">
+              <p>
+                SSC selects stable tokens for reuse. It evaluates voxel stability from two perspectives:
+              </p>
+              <ul>
+                <li><b>Velocity Magnitude:</b> Reflects how much a voxel's latent representation changes.</li>
+                <li><b>Acceleration Criterion:</b> Measures the stability of velocity through the rate of change.</li>
+              </ul>
+              <p>
+                 By jointly considering both, SSC accurately identifies features corresponding to geometrically converged regions.
+              </p>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Results & Comparisons Section -->
+<section class="section">
+    <div class="container is-max-desktop">
+      <h2 class="title is-3 section-title colorful">Comparisons</h2>
+      
+      <div class="content">
+        <p>
+            We compare Fast3Dcache against standard TRELLIS and modality-aware methods like RAS. Below we show interactive 3D results across different settings. 
+            Click and drag to rotate the models.
+        </p>
+      </div>
+
+
+      <h3 class="subsection-title">1. Fast3Dcache with &tau; = 8 (speedup ↑<span style="color: red;">27.12%</span>; FLOPs ↓<span style="color: red;">54.83%</span>)</h3>
+            <div class="columns is-multiline is-centered">
+        
+        <!-- Case 1 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./outputs_tau8/typical_creature_rock_monster_demo_trellis.glb" 
+                    poster="./path/to/poster_1.png"
+                    alt="Dragon"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1"
+                    environment-image="neutral"
+                    exposure="1.0">
+                </model-viewer>
+                <img src="./example_image/typical_creature_rock_monster.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Rock</p> -->
+            </div>
+        </div>
+  
+        <!-- Case 2 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./outputs_tau8/typical_creature_quadruped_demo_trellis.glb" 
+                    alt="Quadruped"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_quadruped.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Quadruped</p> -->
+            </div>
+        </div>
+  
+        <!-- Case 3 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./outputs_tau8/typical_creature_furry_demo_trellis.glb" 
+                    alt="Furry"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_furry.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Furry</p> -->
+            </div>
+        </div>
+
+        <!-- Case 4 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./outputs_tau8/typical_creature_robot_dinosour_demo_trellis.glb" 
+                    alt="Dinosour"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_robot_dinosour.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Dinosour</p> -->
+            </div>
+        </div>
+
+        <!-- Case 5 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./outputs_tau8/typical_vehicle_bulldozer_demo_trellis.glb" 
+                    alt="Bulldozer"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_vehicle_bulldozer.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Bulldozer</p> -->
+            </div>
+        </div>
+      </div>
+
+
+      <h3 class="subsection-title">2. Teacache + Fast3Dcache (speedup <span style="color: red;">3.41×</span>)</h3>
+      <div class="columns is-multiline is-centered">
+        
+        <!-- Case 1 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./demo_outputs/typical_creature_rock_monster_teacache_f3c.glb" 
+                    poster="./path/to/poster_1.png"
+                    alt="Dragon"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1"
+                    environment-image="neutral"
+                    exposure="1.0">
+                </model-viewer>
+                <img src="./example_image/typical_creature_rock_monster.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Rock</p> -->
+            </div>
+        </div>
+  
+        <!-- Case 2 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./demo_outputs/typical_creature_quadruped_teacache_f3c.glb" 
+                    alt="Quadruped"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_quadruped.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Quadruped</p> -->
+            </div>
+        </div>
+  
+        <!-- Case 3 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./demo_outputs/typical_creature_furry_teacache_f3c.glb" 
+                    alt="Furry"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_furry.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Furry</p> -->
+            </div>
+        </div>
+
+        <!-- Case 4 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./demo_outputs/typical_creature_robot_dinosour_teacache_f3c.glb" 
+                    alt="Dinosour"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_robot_dinosour.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Dinosour</p> -->
+            </div>
+        </div>
+
+        <!-- Case 5 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./demo_outputs/typical_vehicle_bulldozer_teacache_f3c.glb" 
+                    alt="Dog and motorcycle"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_vehicle_bulldozer.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Bulldozer</p> -->
+            </div>
+        </div>
+      </div>
+
+      <h3 class="subsection-title">3. EasyCache + Fast3Dcache (speedup <span style="color: red;">10.33×</span>)</h3>
+            <div class="columns is-multiline is-centered">
+        
+        <!-- Case 1 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./easyf3c/typical_creature_rock_monster_easyf3c_s25.glb" 
+                    poster="./path/to/poster_1.png"
+                    alt="Rock"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1"
+                    environment-image="neutral"
+                    exposure="1.0">
+                </model-viewer>
+                <img src="./example_image/typical_creature_rock_monster.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Rock</p> -->
+            </div>
+        </div>
+  
+        <!-- Case 2 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./easyf3c/typical_creature_quadruped_easyf3c_s25.glb" 
+                    alt="Quadruped"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_quadruped.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Quadruped</p> -->
+            </div>
+        </div>
+  
+        <!-- Case 3 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./easyf3c/typical_creature_furry_easyf3c_s25.glb" 
+                    alt="Furry"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_furry.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Furry</p> -->
+            </div>
+        </div>
+
+        <!-- Case 4 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./easyf3c/typical_creature_robot_dinosour_easyf3c_s25.glb" 
+                    alt="Dinosour"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_creature_robot_dinosour.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Dinosour</p> -->
+            </div>
+        </div>
+
+        <!-- Case 5 -->
+        <div class="column is-4">
+            <div class="result-card">
+                <model-viewer 
+                    src="./easyf3c/typical_vehicle_bulldozer_easyf3c_s25.glb" 
+                    alt="Bulldozer"
+                    auto-rotate 
+                    camera-controls 
+                    shadow-intensity="1">
+                </model-viewer>
+                <img src="./example_image/typical_vehicle_bulldozer.png" class="input-image-inset" alt="Input">
+                <!-- <p class="caption">Bulldozer</p> -->
+            </div>
+        </div>
+
+      </div>
+
+      <!-- Quantitative Table -->
+      <div class="columns is-centered" style="margin-top: 30px;">
+        <div class="column is-10">
+            <div class="box">
+                <h4 class="title is-5 has-text-centered">Quantitative Performance Metrics</h4>
+                
+                <h5 class="subtitle is-6 has-text-centered" style="margin-top: 15px; margin-bottom: 10px;">
+                    <b>Table 1.</b> Quantitative comparison on TRELLIS and DSO frameworks.
+                </h5>
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable is-bordered">
+                        <thead>
+                            <tr>
+                                <th>Frameworks</th>
+                                <th>Acceleration Methods</th>
+                                <th>Throughput (iter/s) ↑</th>
+                                <th>FLOPs (T) ↓</th>
+                                <th>CD ↓</th>
+                                <th>F-Score ↑</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td rowspan="6" style="vertical-align: middle;"><b>TRELLIS</b></td>
+                                <td>vanilla</td>
+                                <td>0.5055</td>
+                                <td>244.2</td>
+                                <td>0.0686</td>
+                                <td>54.8244</td>
+                            </tr>
+                            <tr>
+                                <td>RAS (sample ratio 25%)</td>
+                                <td>0.6337</td>
+                                <td>125.1</td>
+                                <td>0.0867</td>
+                                <td>40.2769</td>
+                            </tr>
+                            <tr>
+                                <td>RAS (sample ratio 12.5%)</td>
+                                <td>0.6177</td>
+                                <td>125.8</td>
+                                <td>0.0846</td>
+                                <td>43.9622</td>
+                            </tr>
+                            <tr>
+                                <td>Fast3Dcache (τ = 3)</td>
+                                <td>0.5850</td>
+                                <td>142.4</td>
+                                <td class="best-score">0.0697</td>
+                                <td class="best-score">54.0900</td>
+                            </tr>
+                            <tr>
+                                <td>Fast3Dcache (τ = 5)</td>
+                                <td>0.6344</td>
+                                <td>121.3</td>
+                                <td>0.0712</td>
+                                <td>53.5003</td>
+                            </tr>
+                            <tr>
+                                <td>Fast3Dcache (τ = 8)</td>
+                                <td class="best-score">0.6426</td>
+                                <td class="best-score">110.3</td>
+                                <td>0.0703</td>
+                                <td>53.7528</td>
+                            </tr>
+                            <!-- DSO Section -->
+                            <tr>
+                                <td rowspan="6" style="vertical-align: middle;"><b>DSO</b></td>
+                                <td>vanilla</td>
+                                <td>0.3496</td>
+                                <td>244.2</td>
+                                <td>0.0687</td>
+                                <td>54.8350</td>
+                            </tr>
+                            <tr>
+                                <td>RAS (sample ratio 25%)</td>
+                                <td class="best-score">0.4341</td>
+                                <td>125.0</td>
+                                <td>0.0805</td>
+                                <td>46.4990</td>
+                            </tr>
+                            <tr>
+                                <td>RAS (sample ratio 12.5%)</td>
+                                <td>0.4047</td>
+                                <td>125.8</td>
+                                <td>0.0820</td>
+                                <td>45.5584</td>
+                            </tr>
+                            <tr>
+                                <td>Fast3Dcache (τ = 3)</td>
+                                <td>0.3955</td>
+                                <td>146.5</td>
+                                <td class="best-score">0.0698</td>
+                                <td class="best-score">54.0451</td>
+                            </tr>
+                            <tr>
+                                <td>Fast3Dcache (τ = 5)</td>
+                                <td>0.4114</td>
+                                <td>126.0</td>
+                                <td>0.0711</td>
+                                <td>53.5506</td>
+                            </tr>
+                            <tr>
+                                <td>Fast3Dcache (τ = 8)</td>
+                                <td>0.4071</td>
+                                <td class="best-score">115.4</td>
+                                <td>0.0704</td>
+                                <td>53.5487</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <h5 class="subtitle is-6 has-text-centered" style="margin-top: 30px; margin-bottom: 10px;">
+                    <b>Table 2.</b> Full quantitative results of Fast3Dcache combined with a modality-agnostic method.
+                </h5>
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable is-bordered">
+                        <thead>
+                            <tr>
+                                <th>Method</th>
+                                <th>Throughput↑ (iters/s)</th>
+                                <th>CD↓</th>
+                                <th>F-Score↑</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>Vanilla</td>
+                                <td>0.51</td>
+                                <td>0.0686</td>
+                                <td>54.8244</td>
+                            </tr>
+                            <tr>
+                                <td>Teacache</td>
+                                <td>1.45 (2.84×)</td>
+                                <td>0.0705</td>
+                                <td>53.5567</td>
+                            </tr>
+                            <tr style="background-color: #f9f9f9;">
+                                <td>Teacache + ours</td>
+                                <td class="best-score">1.74 (3.41×)</td>
+                                <td class="best-score">0.0701</td>
+                                <td class="best-score">53.9420</td>
+                            </tr>
+                            <tr>
+                                <td>Easycache</td>
+                                <td>1.95 (3.82×)</td>
+                                <td class="best-score">0.0692</td>
+                                <td>54.5051</td>
+                            </tr>
+                            <tr style="background-color: #f9f9f9;">
+                                <td>Easycache + ours</td>
+                                <td class="best-score">5.27 (10.33×)</td>
+                                <td>0.0694</td>
+                                <td class="best-score">54.7722</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+
+<!-- BibTeX Section -->
+<section class="section" id="BibTeX">
+  <div class="container is-max-desktop content">
+    <h2 class="title">BibTeX</h2>
+    <pre><code>
+@misc{yang2025fast3dcachetrainingfree3dgeometry,
+      title={Fast3Dcache: Training-free 3D Geometry Synthesis Acceleration}, 
+      author={Mengyu Yang and Yanming Yang and Chenyi Xu and Chenxi Song and Yufan Zuo and Tong Zhao and Ruibo Li and Chi Zhang},
+      year={2025},
+      eprint={2511.22533},
+      archivePrefix={arXiv},
+      primaryClass={cs.CV},
+      url={https://arxiv.org/abs/2511.22533}, 
+}
+    </code></pre>
+  </div>
+</section>
+
+<footer class="footer">
+  <div class="container">
+    <div class="content has-text-centered">
+      <p>
+        This website is licensed under a <a rel="license"
+                                            href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+        Commons Attribution-ShareAlike 4.0 International License</a>.
+      </p>
+      <p>
+        Website source code based on the <a
+          href="https://github.com/nerfies/nerfies.github.io">Nerfies</a> project page.
+      </p>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

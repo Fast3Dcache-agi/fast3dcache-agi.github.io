@@ -183,9 +183,7 @@
     }
 
     .gallery-content {
-        /* 使用 Grid 布局，自动填充列 */
         display: grid;
-        /* 每一列最小宽度 140px，最大占满剩余空间。这样屏幕宽时列多，窄时列少 */
         grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
         gap: 20px;
         width: 100%;
@@ -194,7 +192,7 @@
 
     .gallery-item {
         width: 100%;
-        aspect-ratio: 1 / 1; /* 保持正方形 */
+        aspect-ratio: 1 / 1;
         background: #fafafa;
         border-radius: 8px;
         /* box-shadow: 0 2px 5px rgba(0,0,0,0.05); */
@@ -214,8 +212,6 @@
     }
     
     /* Table Styles */
-    /* ------------------------------------------------ */
-    /* HERE IS WHERE THE FONT SIZE IS CHANGED (这里修改了字体大小) */
     .table th {
         vertical-align: middle;
         font-size: 0.85rem; /* Reduced font size for headers */
@@ -248,37 +244,45 @@
           <!-- Authors -->
           <div class="is-size-5 publication-authors">
             <span class="author-block">
-              <a href="https://mulinjushi.github.io">Mengyu Yang</a>,
+              <a href="https://mulinjushi.github.io">Mengyu Yang</a><sup>1,2</sup>,
             </span>
             <span class="author-block">
-              <a href="https://2hitee.github.io">Yanming Yang</a>,
+              <a href="https://2hitee.github.io">Yanming Yang</a><sup>1</sup>,
             </span>
             <span class="author-block">
-              <a href="#">Chenyi Xu</a>,
+              <a href="#">Chenyi Xu</a><sup>1</sup>,
             </span>
             <span class="author-block">
-              <a href="https://chenxi-song.github.io">Chenxi Song</a>,
+              <a href="https://chenxi-song.github.io">Chenxi Song</a><sup>1</sup>,
             </span>
             <span class="author-block">
-              <a href="#">Yufan Zuo</a>,
+              <a href="#">Yufan Zuo</a><sup>1</sup>,
             </span>
             <br>
             <span class="author-block">
-              <a href="https://tongzhao1030.github.io">Tong Zhao</a>,
+              <a href="https://tongzhao1030.github.io">Tong Zhao</a><sup>1</sup>,
             </span>
             <span class="author-block">
-              <a href="https://scholar.google.com/citations?user=qtGY5T4AAAAJ&hl=zh-CN">Ruibo Li</a>,
+              <a href="https://scholar.google.com/citations?user=qtGY5T4AAAAJ&hl=zh-CN">Ruibo Li</a><sup>3</sup>,
             </span>
             <span class="author-block">
-              <a href="https://icoz69.github.io">Chi Zhang</a><sup>*</sup>
+              <a href="https://icoz69.github.io">Chi Zhang</a><sup>1,*</sup>
             </span>
           </div>
 
           <!-- Affiliations -->
           <div class="is-size-6 publication-authors" style="font-size: 1.5em; margin-top: 15px;">
-            <span class="affiliation-block">AGI Lab, Westlake University</span>
+            <span class="affiliation-block"><sup>1</sup>AGI Lab, Westlake University</span>
           </div>
 
+          <div class="is-size-6 publication-authors" style="font-size: 1.5em; margin-top: 15px;">
+            <span class="affiliation-block"><sup>2</sup>University of Electronic Science and Technology of China</span>
+          </div>
+
+          <div class="is-size-6 publication-authors" style="font-size: 1.5em; margin-top: 15px;">
+            <span class="affiliation-block"><sup>3</sup>Nanyang Technological University</span>
+          </div>
+          
           <!-- Corresponding Author Note -->
           <div class="is-size-6 publication-authors" style="font-size: 0.9em; margin-top: 10px;">
             <span class="author-block"><sup>*</sup>Corresponding author</span>
